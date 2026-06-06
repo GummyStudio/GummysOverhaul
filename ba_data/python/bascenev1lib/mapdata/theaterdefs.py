@@ -1,0 +1,18 @@
+# This file generated from ''
+points, boxes = {}, {}
+points['ffa_spawn1'] = (0.59315, 3.48761, -1.25159) + (3.71218, 0.05, 2.68294)
+points['flag1'] = (-4.12468, 3.08604, -1.79962)
+points['flag2'] = (5.80609, 3.15463, -1.92113)
+points['flag_default'] = (0.59646, 3.2075, -2.61422)
+points['powerup_spawn1'] = (5.18086, 4.2789, -3.68353)
+points['powerup_spawn2'] = (-3.23691, 4.1597, 0.88735)
+points['powerup_spawn3'] = (5.08284, 4.1597, 0.88735)
+points['powerup_spawn4'] = (-3.40173, 4.2789, -3.82666)
+points['shadow_lower_bottom'] = (0.59646, -0.22795, 3.36804)
+points['shadow_lower_top'] = (0.59646, 0.69828, 3.36804)
+points['shadow_upper_bottom'] = (0.59646, 5.41325, 3.36804)
+points['shadow_upper_top'] = (0.59646, 7.89148, 3.36804)
+points['spawn1'] = (-4.25032, 3.20616, -1.44366) + (1.0, 0.05, 2.68294)
+points['spawn2'] = (5.8408, 3.39925, -1.20651) + (1.0, 0.05, 2.68294)
+boxes['area_of_interest_bounds'] = (0.30119, 4.35469, 0.47196) + (0, 0, 0) + (13.71716, 6.39334, 9.98269)
+boxes['map_bounds'] = (0.63908, 5.11532, -0.69333) + (0, 0, 0) + (18.75621, 10.99127, 13.46346)
