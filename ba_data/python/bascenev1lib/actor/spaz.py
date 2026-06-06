@@ -479,30 +479,24 @@ class Spaz(bs.Actor):
         if self.every_instance_in_abilities('Critical-Health Gloves'):
             self.handlemessage(bs.PowerupMessage('punch'))
 
-        # DEBUG
-        self.award_xp = False
+       
        
 
-
-    
     def every_instance_in_abilities(self, ability_name: str):
         if not self.is_amiibo:
             return 0
-            
 
         count = 0
 
-        # remove the arrows cuz they're annoying
-        # e.g., "Punch Scale ↑ (1)" or "Punch Scale" -> "punchscale(1)"
-        target_cleaned = ability_name.replace('down', '').replace('down', '').replace(' ', '').lower()
+        # Normalize the ability name for comparison
+        target_cleaned = ability_name.replace('↑', 'up').replace('↓', 'down').replace(' ', '').lower().strip()
 
         for instance in self.abilities:
             if instance is None or instance == "Eaten":
                 continue
-                
-            # Clean the current slot item the exact same way
-            instance_cleaned = instance.replace('up', '').replace('down', '').replace(' ', '').lower()
-            
+
+            instance_cleaned = instance.replace('↑', 'up').replace('↓', 'down').replace(' ', '').lower().strip()
+
             if instance_cleaned == target_cleaned:
                 count += 1
 
@@ -589,6 +583,43 @@ class Spaz(bs.Actor):
               
 
     def tick(self):
+        if not self.exists():
+            return
+        if self.every_instance_in_abilities('Powerup Magnet') or self.every_instance_in_abilities('Stronger Powerup Magnet'):
+            if self.every_instance_in_abilities('Powerup Magnet'):
+                attract_radius = 2.5
+            elif self.every_instance_in_abilities('Stronger Powerup Magnet'):
+                attract_radius = 4.5
+            # bs.getplayers()[0].actor.abilities[0] = 'Powerup Magnet'
+            # bs.getplayers()[0].actor.abilities[0] = 'Stronger Powerup Magnet'
+            # bs.getplayers()[1].actor.abilities
+                
+            # Attract powerups towards us
+            for node in bs.getnodes():
+                actor = node.getdelegate(bs.Actor)
+                if isinstance(actor, PowerupBox) and actor.node and self.node:
+                    #cord diff
+                    dx = actor.node.position[0] - self.node.position[0]
+                    dy = actor.node.position[1] - self.node.position[1]
+                    dz = actor.node.position[2] - self.node.position[2]
+                    distance = math.sqrt(dx**2 + dy**2 + dz**2)
+                    
+                    if 0 < distance < attract_radius:
+                        # normalize
+                        dir_x = dx / distance
+                        dir_y = dy / distance
+                        dir_z = dz / distance
+                        
+                        pull_strength = (attract_radius - distance) / attract_radius * 5.0 * -1
+                        
+                        if actor.node:
+                            vx, vy, vz = actor.node.velocity
+                            actor.node.velocity = (
+                                vx + dir_x * pull_strength,
+                                vy + dir_y * pull_strength,
+                                vz + dir_z * pull_strength
+                            )
+
         self.update_fire()
         self.apply_slowness()
         self.b2b_eletricity()
