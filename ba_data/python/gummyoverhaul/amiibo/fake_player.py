@@ -301,6 +301,19 @@ class FigureSessionPlayer:
 
             target_actor = self._cached_target
             flag_pos = self.get_flag_position()
+            
+            target_node = getattr(target_actor, 'node', None)
+
+            try:
+                target_pos = target_node.position
+                our_pos = node.position
+            except Exception:
+                return
+
+            distance = 999.0
+            dx = target_pos[0] - our_pos[0]
+            dz = target_pos[2] - our_pos[2]
+            distance = math.sqrt(dx * dx + dz * dz)
 
             current_game = type(self.activity)
 
@@ -610,19 +623,6 @@ class FigureSessionPlayer:
 
                         return
                 return
-
-            target_node = target_actor.node
-
-            try:
-                target_pos = target_node.position
-                our_pos = node.position
-            except Exception:
-                return
-
-            distance = 999.0
-            dx = target_pos[0] - our_pos[0]
-            dz = target_pos[2] - our_pos[2]
-            distance = math.sqrt(dx * dx + dz * dz)
 
             # Basic edge awareness.
             near_edge = (
