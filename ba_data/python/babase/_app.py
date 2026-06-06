@@ -170,8 +170,14 @@ class App:
             self._fade_and_shutdown_audio(),
         ]
         self._pool_thread_count = 0
+
         self.is_hosting_code = False
         self.host_code = ''
+
+        #  check if we hosted before, likey we are on the same IP so just use the same code
+        if _babase.app.config.get('GUMMY_last_code', ''):
+            self.host_code = _babase.app.config['GUMMY_last_code']
+            self.is_hosting_code = True
         
 
         # We hold a lock while lazy-loading our subsystem properties so
