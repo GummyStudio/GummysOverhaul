@@ -316,7 +316,7 @@ class CodeGatherTab(GatherTab):
         _HostLookupThread(
                 name=ip,
                 port=port,
-                call=bui.WeakCall(result),
+                call=bui.Call(result),
             ).start()
         babase.app.config['GUMMY_last_code_used'] = code_str
         babase.app.config.apply_and_commit()
