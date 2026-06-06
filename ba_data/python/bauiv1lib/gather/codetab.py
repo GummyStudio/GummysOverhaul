@@ -119,6 +119,7 @@ class CodeGatherTab(GatherTab):
         self._party_edit_addr_text: bui.Widget | None = None
         self._party_edit_port_text: bui.Widget | None = None
         self._no_parties_added_text: bui.Widget | None = None
+        self._copy_button = None
         self.ip_from_internet = None
         #  check if we hosted before, likey we are on the same IP so just use the same code
         if babase.app.config.get('GUMMY_last_code', ''):
