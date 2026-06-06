@@ -536,10 +536,7 @@ class Chooser:
             if babase.app.classic.platform not in [
                 'android'
                     # ONLY allow FP's in FFA games
-            ] and isinstance(bascenev1.getsession(), (
-                bascenev1.FreeForAllSession
-                )):
-                
+            ]:
                 self._profiles['_fp'] = {}
         
         

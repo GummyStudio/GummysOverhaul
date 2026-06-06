@@ -1,6 +1,7 @@
 import bascenev1 as bs
 from bascenev1 import InputType
 from bascenev1lib.actor.playerspaz import PlayerSpaz
+from bascenev1lib.actor.spazbot import SpazBot
 import random
 from bascenev1lib.actor.popuptext import PopupText
 import math
@@ -985,21 +986,31 @@ class FigureSessionPlayer:
         w_revenge = weights.get('target_revenge', 0.0)
 
         max_fall = -1.72
-        all_players = [p for p in self.activity.players if p.is_alive() and p != self.activityplayer]
+        if isinstance(bs.getsession(), bs.CoopSession):
+            try:
+                all_players = [b for b in self.activity._bots.get_living_bots()]
+            except:
+                all_players = []
+        else:
+            all_players = [p for p in self.activity.players if p.is_alive() and p != self.activityplayer]
         if not all_players:
             return None
 
         players_by_score = sorted(all_players, key=lambda p: getattr(p, 'score', 0))
 
         for p in all_players:
-            if not p.actor or not p.actor.is_alive() or p.actor.node.velocity[2] < max_fall:
+            if isinstance(p, SpazBot):
+                actor = p
+            else:
+                actor = p.actor
+            if not actor or not actor.is_alive() or actor.node.velocity[2] < max_fall:
                 continue
             
             score = random.random() * max(0.15, w_random)
 
             try:
                 my_pos = self.activityplayer.actor.node.position
-                target_pos = p.actor.node.position
+                target_pos = actor.node.position
 
                 distance = math.dist(my_pos, target_pos)
 
@@ -1021,8 +1032,7 @@ class FigureSessionPlayer:
 
                 if (
                     last_attacker is not None
-                    and hasattr(p, 'sessionplayer')
-                    and p.sessionplayer
+                    and getattr(p, 'sessionplayer', None)
                 ):
                     if id(p.sessionplayer) == last_attacker:
                         score += w_revenge * 5.0
@@ -1032,7 +1042,7 @@ class FigureSessionPlayer:
 
             if score > highest_score:
                 highest_score = score
-                best_target = p.actor
+                best_target = actor
 
         return best_target
 
