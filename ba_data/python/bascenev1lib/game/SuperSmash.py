@@ -484,20 +484,20 @@ class SSPlayerSpaz(PlayerSpaz):
 				self._last_hit_time = local_time
 
 			multi_calc = (self.multiplier - 1) * 100
-			base_knockback = 0.08
+			base_knockback = 0.01
 			scaling = 0.0025                # how steeply it rises
 
 			multi = base_knockback + (multi_calc ** 1.35) * scaling
 			
 			# Cap extremely high knockback to prevent runaway / inf
-			if multi > 20:
+			if multi > 30:
 				# Scale it down smoothly
 				factor = 20 / multi
 				multi *= factor
 
 			multi = max(0.001, multi)
-			
-			msg.velocity_magnitude * multi
+			impulse_scale = multi
+
 			mag = msg.magnitude * self.impact_scale
 			velocity_mag = msg.velocity_magnitude * self.impact_scale
 			damage_scale = 0.22
@@ -619,8 +619,26 @@ class SSPlayerSpaz(PlayerSpaz):
 					msg.force_direction[1],
 					msg.force_direction[2],
 				)
-
 				damage = int(damage_scale * self.node.damage)
+				# another, but knockback
+				self.node.handlemessage(
+                        'impulse',
+                        msg.pos[0],
+                        msg.pos[1],
+                        msg.pos[2],
+                        msg.velocity[0],
+                        msg.velocity[1],
+                        msg.velocity[2],
+                        mag * impulse_scale,
+                        velocity_mag * impulse_scale,
+                        msg.radius,
+                        0,
+                        msg.force_direction[0],
+                        msg.force_direction[1],
+                        msg.force_direction[2],
+                    )
+
+				
 			self.node.handlemessage('hurt_sound')
 
 			# Play punch impact sound based on damage if it was a punch.
@@ -806,8 +824,8 @@ class SSPlayerSpaz(PlayerSpaz):
 				vel = self.node.velocity
 
 				dt = 2.85  # future prediction window
-				pred_x = pos[0] + vel[0] * dt
-				pred_y = pos[1] + vel[1] * dt
+				pred_x = pos[0] + vel[0] * dt 
+				pred_y = pos[1] + vel[1] * dt * 0.5
 				pred_z = pos[2] + vel[2] * dt
 
 				# True OOB detection
