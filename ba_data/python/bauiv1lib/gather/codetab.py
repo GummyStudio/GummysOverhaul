@@ -122,8 +122,8 @@ class CodeGatherTab(GatherTab):
         self.ip_from_internet = None
         #  check if we hosted before, likey we are on the same IP so just use the same code
         if babase.app.config.get('GUMMY_last_code', ''):
-            self.host_code = babase.app.config['GUMMY_last_code']
-            self.is_hosting_code = True
+            bs.app.host_code = babase.app.config['GUMMY_last_code']
+            bs.app.is_hosting_code = True
         
 
     @override
@@ -290,6 +290,7 @@ class CodeGatherTab(GatherTab):
     def _stop_hosting_action(self, r_w: float, r_h: float) -> None:
         bs.app.is_hosting_code = False
         bs.app.host_code = ''
+        babase.app.config['GUMMY_last_code'] = ''
         bui.getsound('shieldDown').play()
 
     def _connect_via_code(self, code_widget: bui.Widget) -> None:
@@ -417,6 +418,7 @@ class CodeGatherTab(GatherTab):
             self.ip_from_internet = None
             bs.app.is_hosting_code = False
             bs.app.host_code = ''
+            babase.app.config['GUMMY_last_code'] = ''
             
             
             pos_y = 190.0
