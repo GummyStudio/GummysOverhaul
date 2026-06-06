@@ -170,9 +170,11 @@ class App:
             self._fade_and_shutdown_audio(),
         ]
         self._pool_thread_count = 0
+
         self.is_hosting_code = False
         self.host_code = ''
-        
+
+       
 
         # We hold a lock while lazy-loading our subsystem properties so
         # we don't spin up any subsystem more than once, but the lock is
