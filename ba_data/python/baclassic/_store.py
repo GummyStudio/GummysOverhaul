@@ -147,7 +147,7 @@ class StoreSubsystem:
                                          'description': 'Is that a spirit? flame? water? File names are\nConfusing.'
                                          },
                 'characters.space': {'character': 'Space Guy',
-                                         'description': 'Guy from that one lego move! I love legos!'
+                                         'description': 'Guy from that one lego movie! I love legos!'
                                          },
                 'characters.vr': {'character': 'VR-Cache',
                                          'description': 'Kind reminds me of VR-Bob.'
