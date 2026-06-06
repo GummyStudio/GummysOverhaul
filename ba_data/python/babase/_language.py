@@ -178,10 +178,10 @@ class LanguageSubsystem(AppSubsystem):
                         lmodvalues = json.loads(infile.read())
             except Exception:
                 applog.exception("Error importing language '%s'.", language)
-                print('Gummy\'s Overhaul Only Supports English.')
+                applog.error('Gummy\'s Overhaul only supports english. (for noooww...)')
                 _babase.screenmessage(
-                    f"Error setting language to '{language}';"
-                    f' see log for details.',
+                    f"Error setting language to '{language}'."
+                    f'\nGummy\'s Overhaul only supports english.',
                     color=(1, 0, 0),
                 )
                 switched = False

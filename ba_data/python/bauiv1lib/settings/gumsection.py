@@ -44,27 +44,20 @@ class gumsectionSettingsWindow(bui.MainWindow):
         
        
 
-        self._r = 'settingsGummy'
+        self._r = 'gumWindow'
         app = bui.app
         assert app.classic is not None
 
         spacing = 32
         self._have_selected_child = False
         uiscale = app.ui_v1.uiscale
-        discord_rp_enabled = babase.app.classic.platform not in [
-        'android'
-        ]
+        discord_rp_enabled = babase.app.classic.platform != 'android'
         width = 450.0
         height = (470.0 if discord_rp_enabled else 430) + 170
         self._max_fps_dirty = False
         self._last_max_fps_set_time = bui.apptime()
         self._last_max_fps_str = ''
         self._show_fn = True
-
-        
-
-
-        
 
 
         assert bui.app.classic is not None
@@ -82,9 +75,6 @@ class gumsectionSettingsWindow(bui.MainWindow):
                 transition=transition,
                 scale_origin_stack_offset=scale_origin,
                 scale=base_scale,
-                stack_offset=(
-                   (0, 0)
-                ),
             ),
             transition=transition,
             origin_widget=origin_widget
@@ -99,7 +89,6 @@ class gumsectionSettingsWindow(bui.MainWindow):
             scale=0.8,
             text_scale=1.2,
             autoselect=True,
-            label="<",
             button_type='backSmall',
             on_activate_call=self._back,
         )
@@ -110,7 +99,7 @@ class gumsectionSettingsWindow(bui.MainWindow):
             parent=self._root_widget,
             position=(10, height - 44),
             size=(width, 25),
-            text='Gummy\'s Overhaul',
+            text=bui.Lstr(r='titleText'),
             color=bui.app.ui_v1.title_color,
             h_align='center',
             v_align='top',
@@ -123,7 +112,7 @@ class gumsectionSettingsWindow(bui.MainWindow):
             parent=self._root_widget,
             position=(60, v),
             size=(160, 25),
-            text='Main Menu Music',
+            text=bui.Lstr(r=f'{self._r}.menuMusicText'),
             color=bui.app.ui_v1.heading_color,
             scale=1,
             maxwidth=150,
@@ -143,7 +132,7 @@ class gumsectionSettingsWindow(bui.MainWindow):
                 'Running From the Internet', 'Dazzling Dark Future', 
                 'Join Us for a Bite Remix', 'Mario VS Luigi', "Fucking Pea k",
                 'TEKASHIRUNE', 'Smash Bros. Ultimate'
-                ],
+            ],
         current_choice=bui.app.config.get('GUMMY_Main Menu Music', 'Mario Paint'),
         on_value_change_call=self._fnsong,
         )
@@ -160,7 +149,7 @@ class gumsectionSettingsWindow(bui.MainWindow):
             maxwidth=280,
             textcolor=(0.8, 0.8, 0.8),
             value=bui.app.config.get("GUMMY_disablerandomcrit", False),
-            text='Disable Random Crits',
+            text=bui.Lstr(r=f'{self._r}.disableCritsText'),
             on_value_change_call=self._on_randomcritchange
 )
         
@@ -172,7 +161,7 @@ class gumsectionSettingsWindow(bui.MainWindow):
             parent=self._root_widget,
             position=(60, v),
             size=(160, 25),
-            text='Random Crit Chance\n(Does not effect co-op)',
+            text=bui.Lstr(r=f'{self._r}.critChanceText'),
             color=bui.app.ui_v1.heading_color,
             scale=1,
             maxwidth=150,
@@ -185,8 +174,8 @@ class gumsectionSettingsWindow(bui.MainWindow):
             width=150,
             scale=popup_menu_scale,
             choices=["(1/24)", "(1/9)", "(1/4)", "100%"],
-        current_choice=bui.app.config.get('GUMMY_RandomCritChance', '(1/4)'),
-        on_value_change_call=self._critchance,
+            current_choice=bui.app.config.get('GUMMY_RandomCritChance', '(1/4)'),
+            on_value_change_call=self._critchance,
         )
 
         v = v - 50
@@ -201,7 +190,7 @@ class gumsectionSettingsWindow(bui.MainWindow):
             maxwidth=300,
             textcolor=(0.8, 0.8, 0.8),
             value=bui.app.config.get("GUMMY_blockvanillaplayers", False),
-            text='pizza tower in coop',
+            text=bui.Lstr(r=f'{self._r}.comboMeterText'),
             on_value_change_call=self._block_vanilla
         )
 
@@ -209,7 +198,7 @@ class gumsectionSettingsWindow(bui.MainWindow):
 
         # Tower Expert mode.
 
-        self._block_vanilla_players = bui.checkboxwidget(
+        self._skip_cards_tower = bui.checkboxwidget(
             parent=self._root_widget,
             position=(50, v),
             size=(160, 30),
@@ -217,7 +206,7 @@ class gumsectionSettingsWindow(bui.MainWindow):
             maxwidth=300,
             textcolor=(0.8, 0.8, 0.8),
             value=bui.app.config.get("GUMMY_expertmode", False),
-            text='Skip card section in The Tower',
+            text=bui.Lstr(r=f'{self._r}.skipCardsText'),
             on_value_change_call=self._expert_mode
         )
         v = v - 35
@@ -230,7 +219,7 @@ class gumsectionSettingsWindow(bui.MainWindow):
             maxwidth=300,
             textcolor=(0.8, 0.8, 0.8),
             value=bui.app.config.get('remove_xp_stuff_lomao', True),
-            text='Disable XP Gain popups',
+            text=bui.Lstr(r=f'{self._r}.disableXPPopupText'),
             on_value_change_call=self._xp
         )
 
@@ -239,7 +228,7 @@ class gumsectionSettingsWindow(bui.MainWindow):
         v = v - 60
         bui.buttonwidget(
             parent=self._root_widget,
-            label='Globe Settings',
+            label=bui.Lstr(r=f'{self._r}.globeSettingsText'),
             position=(width * 0.3, v),
             size=(200, 50),
             on_activate_call=self.globe_settings_window
@@ -254,14 +243,14 @@ class gumsectionSettingsWindow(bui.MainWindow):
                 maxwidth=300,
                 textcolor=(0.8, 0.8, 0.8),
                 value=bui.app.config.get("GUMMY_showevents", False),
-                text='Always show holiday events in The Tower',
+                text=bui.Lstr(r=f'{self._r}.alwaysShowHolidaysText'),
                 on_value_change_call=self.holiday
         )
 
         v = v - 60
         bui.buttonwidget(
             parent=self._root_widget,
-            label='Figure Player Manager',
+            label=bui.Lstr(r=f'{self._r}.figurePlayerManText'),
             position=(width * 0.3, v),
             size=(200, 50),
             on_activate_call=self.fp_manager
@@ -277,7 +266,7 @@ class gumsectionSettingsWindow(bui.MainWindow):
                 maxwidth=300,
                 textcolor=(0.8, 0.8, 0.8),
                 value=bui.app.config.get("GUMMY_discordrp", False),
-                text='Enable Rich Presence',
+                text=bui.Lstr(r=f'{self._r}.enableRPCText'),
                 on_value_change_call=self.dicsord_rp
             )
     
@@ -408,7 +397,7 @@ class gumsectionSettingsWindow(bui.MainWindow):
         cfg['GUMMY_discordrp'] = val
         cfg.apply_and_commit()
         babase.screenmessage(
-            'Restart the game for this to take effect.'
+            bui.Lstr(r='restartGameWarning')
         )
 
     def _on_randomcritchange(self, val: bool) -> None:
@@ -432,6 +421,7 @@ class gumsectionSettingsWindow(bui.MainWindow):
 class GlobeSettingsWindow(PopupWindow):
     def __init__(self):
         self._transitioning_out = False
+        self._r = 'globeSettings'
         width = 520
         height = 365
         super().__init__(
@@ -473,7 +463,7 @@ class GlobeSettingsWindow(PopupWindow):
             parent=self.root_widget,
             position=(50, v),
             size=(300, 30),
-            text='Disable Messages',
+            text=bui.Lstr(r=f'{self._r}.disableMessagesText'),
             value=bui.app.config.get('GUMMY_disable_messages', False),
             on_value_change_call=self._on_disable_messages
         )
@@ -485,7 +475,7 @@ class GlobeSettingsWindow(PopupWindow):
             parent=self.root_widget,
             position=(50, v + 20),
             size=(0, 0),
-            text='Message Frequency',
+            text=bui.Lstr(r=f'{self._r}.msgFrequencyText'),
             h_align='left',
             v_align='center',
             scale=1.0,
@@ -508,7 +498,7 @@ class GlobeSettingsWindow(PopupWindow):
             parent=self.root_widget,
             position=(50, v),
             size=(300, 30),
-            text='Toggle The Globe',
+            text=bui.Lstr(r=f'{self._r}.toggleGlobeText'),
             value=bui.app.config.get('GUMMY_toggle_globe', True),
             on_value_change_call=self._on_toggle_globe
         )

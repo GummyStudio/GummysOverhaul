@@ -17,6 +17,7 @@ import bascenev1 as bs
 import bauiv1 as bui
 from enum import Enum
 import babase
+from babase._logging import applog
 from efro.util import utc_now
 from bascenev1lib.mainmenu import MainMenuSession
 
@@ -27,6 +28,7 @@ class CharacterDetailWindow(bui.Window):
     def __init__(self, name: str, activity: bs.Activity, store_browser: StoreBrowserWindow, already_owned: bool = False):
         self._width = 400
         self._height = 350
+        self._r = 'storeCharDetail'
         self._activity = weakref.ref(activity)
         self._store_browser = weakref.ref(store_browser)
         xoffs = 160
@@ -106,7 +108,9 @@ class CharacterDetailWindow(bui.Window):
             v_align='center'
         )
         
-        spaz = bs.app.classic.spaz_appearances[bui.app.classic.store.get_store_item_name_translated(name).evaluate()]
+        spaz = bs.app.classic.spaz_appearances[
+            bui.app.classic.store.get_store_item_name_translated(name).evaluate()
+        ]
         bui.imagewidget(
             parent=self._scrollwidget,
             position=(centre_x-25, 140),
@@ -121,7 +125,11 @@ class CharacterDetailWindow(bui.Window):
         bui.textwidget(
             parent=self._scrollwidget,
             position=(centre_x, self._height-260),
-            text='Cosmetic' if use_dollars else 'Character',
+            text=(
+                bui.Lstr(r=f'{self._r}.cosmeticText') 
+                if use_dollars else 
+                bui.Lstr(r=f'{self._r}.characterText')
+            ),
             scale=0.5,
             color=(1,1,1,0.5),
             h_align='center',
@@ -132,7 +140,7 @@ class CharacterDetailWindow(bui.Window):
             parent=self._scrollwidget,
             position=(50, 25),
             size=(140, 50),
-            label="About",
+            label=bui.Lstr(r=f'{self._r}.aboutText'),
             on_activate_call=self._show_about
         )
 
@@ -141,7 +149,14 @@ class CharacterDetailWindow(bui.Window):
             position=(210, 25),
             size=(140, 50),
             button_type='square',
-            label='Owned' if self.already_owned else babase.charstr((babase.SpecialChar.OUYA_BUTTON_O if use_dollars else babase.SpecialChar.OUYA_BUTTON_U)) +str(bs.app.plus.get_v1_account_misc_read_val('price.'+ name, '?')),
+            label=(
+                bui.Lstr(r=f'{self._r}.ownedText') if self.already_owned 
+                else babase.charstr((babase.SpecialChar.OUYA_BUTTON_O 
+                if use_dollars else babase.SpecialChar.OUYA_BUTTON_U)) 
+                + str(bs.app.plus.get_v1_account_misc_read_val(
+                    'price.' + name, '?'
+                ))
+            ),
             on_activate_call=self._buy_character,
             color= (0.6, 0.6, 0.6) if self.already_owned else None
         )
@@ -162,7 +177,9 @@ class CharacterDetailWindow(bui.Window):
         self.description = description
    
     def _show_about(self):
-        self._activity().show_description(bui.app.classic.store.get_store_item_name_translated(self.name).evaluate(), self.description    
+        self._activity().show_description(
+            bui.app.classic.store.get_store_item_name_translated(self.name).evaluate(), 
+            self.description    
         )
         bui.getsound('swish').play()
         
@@ -245,7 +262,7 @@ class StoreBrowserWindow(bui.MainWindow):
         # extra_top = 30 if uiscale is bui.UIScale.SMALL else 0
 
         self.request: Any = None
-        self._r = 'store'
+        self._r = 'gumStore'
         self._last_buy_time: float | None = None
 
         # Do some fancy math to fill all available screen area up to the
@@ -304,13 +321,22 @@ class StoreBrowserWindow(bui.MainWindow):
 
         tabs_def = [
             # (self.TabID.EXTRAS, bui.Lstr(resource=f'{self._r}.extrasText')),
-            (self.TabID.TALK, 'Talk'),
+            (
+                self.TabID.TALK, 
+                bui.Lstr(r=f'{self._r}.talkText')
+            ),
             (
                 self.TabID.CHARACTERS,
                 bui.Lstr(resource=f'{self._r}.charactersText'),
             ),
-            (self.TabID.COSMETICS, 'Cosmetics'),
-            (self.TabID.EXIT, 'Exit'),
+            (
+                self.TabID.COSMETICS,
+                bui.Lstr(r=f'{self._r}.cosmeticsText')
+            ),
+            (
+                self.TabID.EXIT, 
+                bui.Lstr(r=f'{self._r}.exitText')
+            ),
         ]
 
         tab_inset = 50 if uiscale is bui.UIScale.SMALL else 100
@@ -484,7 +510,7 @@ class StoreBrowserWindow(bui.MainWindow):
 
         if tab_id is self.TabID.EXIT:
             ConfirmWindow(
-                'Are you sure you want to leave?',
+                bui.Lstr(r=f'{self._r}.confirmLeaveText'),
                 self._leave_shop,
             )
             return
@@ -572,12 +598,12 @@ class StoreBrowserWindow(bui.MainWindow):
                         or not isinstance(price, int)
                         or price <= 0
                     ):
-                        print(
+                        applog.error(
                             'Error; got invalid local price of',
                             price,
                             'for item',
                             item,
-                        )
+                        ) # normalize logging :broken_heart:
                         bui.getsound('error').play()
                     else:
                         bui.getsound('click01').play()
@@ -720,7 +746,9 @@ class StoreBrowserWindow(bui.MainWindow):
                         if True:
                         
                             def do_it() -> None:
-                                babase.screenmessage('Purchasing...')
+                                babase.screenmessage(
+                                    bui.Lstr(r=f'{self._r}.purchasingText')
+                                )
                                 cfg = babase.app.config
                                 abletobuy = True
                                 
@@ -814,18 +842,14 @@ class StoreBrowserWindow(bui.MainWindow):
                                         cfg.apply_and_commit()
                                         bui.getsound('cashRegister').play()
                                         
-                                        self.activity.start_talk_session(
-                                                'Buy'
-                                        )
+                                        self.activity.start_talk_session('Buy')
                                     else:
                                         
                                         key = 'GUMMY_gumdollars' if use_dollars else 'GUMMY_gumcoins'
                                         cfg[key] = gumcoins + price
                                         cfg.apply_and_commit()
                                         bui.getsound('error').play()
-                                        self.activity.start_talk_session(
-                                            'Cant'
-                                        )
+                                        self.activity.start_talk_session('Cant')
                             
                             bui.getsound('swish').play()
                             ConfirmWindow(
@@ -1146,10 +1170,15 @@ class StoreBrowserWindow(bui.MainWindow):
                                 
                                 
                     if gummyoverhaul:
-                        price_text = (bui.charstr(bui.SpecialChar.OUYA_BUTTON_O) if use_dollars else bui.charstr(bui.SpecialChar.OUYA_BUTTON_U)) + ' ' + str(
-                        plus.get_v1_account_misc_read_val(
-                            'price.' + b_type, '?'
-                            )   
+                        price_text = (
+                            bui.charstr(bui.SpecialChar.OUYA_BUTTON_O) 
+                            if use_dollars 
+                            else bui.charstr(bui.SpecialChar.OUYA_BUTTON_U) + ' ' 
+                            + str(
+                                plus.get_v1_account_misc_read_val(
+                                    'price.' + b_type, '?'
+                                )   
+                            )
                         )
                         price_text_left = ''
                         price_text_right = ''
@@ -1251,9 +1280,12 @@ class StoreBrowserWindow(bui.MainWindow):
                 )
             if b_type.startswith('talk.'):
                 bui.buttonwidget(
-
                     edit=b_info['button'],
-                    label=store.get_store_item_name_translated(b_type)
+                    label=bui.Lstr(translate=(
+                            'gumStoreTalks', 
+                            store.get_store_item_name_translated(b_type),
+                        )
+                    )
                 )
                 bui.textwidget(edit=b_info['title_text'], text='')
 
@@ -1295,6 +1327,7 @@ class StoreBrowserWindow(bui.MainWindow):
                     self._store_window = store_window
                     self._width = width
                     store_data = cstore.get_store_layout('goverhaul')
+                    self._r = 'gumStore'
                     self._tab = sdata['tab']
                     self._sections = copy.deepcopy(store_data[sdata['tab']])
                     self._height: float | None = None
@@ -1404,7 +1437,7 @@ class StoreBrowserWindow(bui.MainWindow):
                     v = self._height - 20
 
                     if self._tab == 'characters':
-                        txt = 'Epic Goverhaul characters, amirite?'
+                        txt = bui.Lstr(r=f'{self._r}.charactersSubText')
                         bui.textwidget(
                             parent=cnt2,
                             text=txt,
@@ -1420,7 +1453,12 @@ class StoreBrowserWindow(bui.MainWindow):
                             transition_delay=0.4,
                         )
                     if self._tab == 'cosmetics':
-                        txt = 'Equip your cosmetic to look stylish, or completely different in-game!' if not bs.app.ui_v1.uiscale is bs.UIScale.SMALL else 'Equip your cosmetic to look stylish\nor completely different in-game!'
+                        # Why
+                        txt = (
+                            bui.Lstr(r=f'{self._r}.cosmeticInfoText')
+                            if not bs.app.ui_v1.uiscale is bs.UIScale.SMALL 
+                            else bui.Lstr(r=f'{self._r}.cosmeticInfoTextSmall')
+                        )
                         bui.textwidget(
                             parent=cnt2,
                             text=txt,
@@ -1494,6 +1532,13 @@ class StoreBrowserWindow(bui.MainWindow):
                     for section in self._sections:
                         
                         if section['title'] != '':
+                            text = (
+                                section['title'][7:] 
+                                if section['title'].startswith('nolstr.') 
+                                else bui.Lstr(resource=section['title']) 
+                                if section['title'] != 'store.overhaul' 
+                                else f'Gummy\'s Overhaul   ({babase.charstr(babase.SpecialChar.OUYA_BUTTON_U)} {babase.app.config.get('GUMMY_gumcoins', '0')})'
+                            )
                             bui.textwidget(
                                 parent=cnt2,
                                 position=(
@@ -1506,7 +1551,7 @@ class StoreBrowserWindow(bui.MainWindow):
                                 color=(0.7, 0.9, 0.7, 1),
                                 h_align='center',
                                 v_align='center',
-                                text=section['title'][7:] if section['title'].startswith('nolstr.') else bui.Lstr(resource=section['title']) if section['title'] != 'store.overhaul' else f'Gummy\'s Overhaul   ({babase.charstr(babase.SpecialChar.OUYA_BUTTON_U)} {babase.app.config.get('GUMMY_gumcoins', '0')})',
+                                text=text,
                                 maxwidth=self._width * 0.7,
                             )
                             v -= title_spacing
@@ -1737,9 +1782,7 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
     """Activity showing the rotating main menu bg stuff."""
 
     _stdassets = bs.Dependency(bs.AssetPackage, 'stdassets@1')
-
-
-
+    
     def __init__(self, settings: dict):
         super().__init__(settings)
         
@@ -1753,6 +1796,7 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
         self.vr_top_fill: bs.NodeActor | None = None
         self.bgterrain: bs.NodeActor | None = None
         self._ts = 0.86
+        self._r = 'gumStoreDialog'
         self.shop_window: bui.MainWindow | None = None
 
         
@@ -1791,12 +1835,17 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
 
     def on_transition_in(self):
         super().on_transition_in()
-       
-        
-
-        
-        
-            
+    
+    def lstr(
+        self, 
+        r: str, 
+        s: list | None = None
+    ) -> babase.Lstr:
+        # shouldn't evaluate but, oh well
+        return babase.Lstr(
+            resource=f'{self._r}.{r}', 
+            subs=s,
+        ).evaluate()
             
     def on_begin(self):
         super().on_begin()
@@ -1807,12 +1856,6 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
         textbox_y = -180
         currency_y = 270
         scale = 4
-
-    
-
-        
-
-        
 
         bs.newnode(
                 'image',
@@ -1852,11 +1895,7 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
                 }
             )
         )
-
-
-
         
-
         self.currency_text = bs.newnode(
                 'text',
                 attrs={
@@ -1886,8 +1925,6 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
                 }
             )
         
-
-        
         self.shopkeeper_text = bs.NodeActor(
             bs.newnode(
                 'text',
@@ -1906,17 +1943,16 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
         )
         self.set_tail_mode('moving')
         greeting_messages = [
-            'Oh hello.',
-            'Didnt see you there!',
-            'I\'m... a bit hungry.',
-            'Take what you need!',
-            'How are you today?',
-            'Hi...',
-            ('*sigh* ...', (0.6,0.6,0.6)),
+            self.lstr('greetingText1'),
+            self.lstr('greetingText2'),
+            self.lstr('greetingText3'),
+            self.lstr('greetingText4'),
+            self.lstr('greetingText5'),
+            self.lstr('greetingText6'),
+            (self.lstr('greetingText7'), (0.6,0.6,0.6)),
         ]
 
         true_username = bs.app.plus.get_v1_account_display_string(False)
-
 
         self.special_username = False
         self.bad_username = False
@@ -1925,19 +1961,27 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
         # and colors.
         self.gummyboiyt = False
 
+        # eeehh just special peopl
         if true_username.lower() in [
             'sok05', 'sok', 'themikirog', 'vishuu', 'loup',
             'ggmustagd', 'ggmustagd1', 'ggMustagd01',  'achs', 'achsideas',
             'lucegangre', 'gmod', 'noname12369', 
             'mell', 'mellboii', 'ire', 'ire2' , 'ire3', 'mellboii64', 'buddie', 'buddiew', 'gummyboiyt'
         ]:
-            if true_username.lower() in [
-                'sok05', 'sok', 'achs', 'achsIdeas', 'mell', 'mellboii', 'mell', 'mellboii64', 'gmod', 'noname12369', 
-            ]:
-                self.bad_username = True
-            if true_username.lower() == 'gummyboiyt':
-                self.gummyboiyt = True
             self.special_username = True
+        # Dude Gummy Genuinely Fuck YOu
+        # Oh yeah for normal comment
+        # this just counts sok, achs, mell, and lemon as "blacklisted"
+        # and changes faye's dialogue. not much there
+        if true_username.lower() in [
+            'sok05', 'sok', 'achs', 'achsIdeas', 
+            'mell', 'mellboii', 'mell', 'mellboii64', 
+            'gmod', 'noname12369', 
+        ]:
+            self.bad_username = True
+        if true_username.lower() == 'gummyboiyt':
+            self.gummyboiyt = True
+
 
        
         try:
@@ -1988,23 +2032,26 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
 
         
         if self.special_username:
-            message = f'Hey.. my owner knows you! You\'re {true_username} right? \nTake what you need.'
+            message = self.lstr(
+                'specialUsernameGreeting', 
+                [('${USER}', true_username)]
+            )
             self.expression('happy', lock=True)
             
 
             if self.bad_username:
-                message = 'My owner said you we\'re in the black list...\nPlease hurry and get what you need.'
+                message = self.lstr('blacklistUserGreeting')
                 self.expression('annoyed', lock=True)
             
             if self.gummyboiyt:
                 message = random.choice([
-                    f'Oh... Hey.. boss..',
-                    'Dad? I cant seem to recognize you. Hi there.',
-                    f'Im hungry. Can i please get something to eat Dad?',
-                    f'You\'re back.\nWhen can i go home Dad?',
-                    f'...Hi dad.',
-                    f'Why do you keep coming back Dad?',
-                    f'I\'m sad. Please, oh please can i get a toy?',
+                    self.lstr('gummyGreeting1'),
+                    self.lstr('gummyGreeting2'),
+                    self.lstr('gummyGreeting3'),
+                    self.lstr('gummyGreeting4'),
+                    self.lstr('gummyGreeting5'),
+                    self.lstr('gummyGreeting6'),
+                    self.lstr('gummyGreeting7'),
                 ]
                 )
                 self.shopkeeper_speak(
@@ -2021,46 +2068,49 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
         time = self.shopkeeper_speak(
            message=message, color=color
         )
-
-        if message == '*sigh* ...':
+        # Hey Gummy Can YOu Make These Not Text Based Lol
+        if message == self.lstr('greetingText7'): # sigh...
             self.set_tail_mode('lay')
             self.expression('annoyed', lock=True)
         
-        if message == 'I\'m... a bit hungry.':
+        if message == self.lstr('greetingText3'): # i'm a bit hungry
             self.set_tail_mode('lay')
         
     
     def tickin(self):
         
-        self.currency_text.text = f'{babase.charstr(babase.SpecialChar.OUYA_BUTTON_U)}{babase.app.config.get('GUMMY_gumcoins', 0)} {babase.charstr(babase.SpecialChar.OUYA_BUTTON_O)}{babase.app.config.get('GUMMY_gumdollars', 0)}'
+        self.currency_text.text = (
+            f'{babase.charstr(babase.SpecialChar.OUYA_BUTTON_U)}{babase.app.config.get('GUMMY_gumcoins', 0)} '
+            f'{babase.charstr(babase.SpecialChar.OUYA_BUTTON_O)}{babase.app.config.get('GUMMY_gumdollars', 0)}'
+        )
 
     def reset(self):
         self.set_tail_mode('moving')
         self.expression('normal')
         self.shopkeeper_speak(
-            '...', speed=0.01
+            self.lstr('emptyText'), speed=0.01
         )
     
     def bought_something(self):
         messages = [
-            'Thank you so much!',
-            'Hehe, I really appreciate it!',
-            'Yay! I\'ll be fed tonight!',
-            'You\'re too kind!',
-            'Thanks a ton!',
-            'Enjoy that now.'
+            self.lstr('boughtText1'),
+            self.lstr('boughtText2'),
+            self.lstr('boughtText3'),
+            self.lstr('boughtText4'),
+            self.lstr('boughtText5'),
+            self.lstr('boughtText6'),
         ]
 
         if self.special_username:
-            message = 'Hey.. my owner knows you!\nTake what you need.'
+            message = self.lstr('specialUsernameGreetingShort')
             self.expression('happy')
             self.set_tail_mode('static')
             messages = [
-                "Oh—it's you! My owner talks about you a lot!",
-                "You're a friend of my owner, right? Take anything you need!",
-                "Ah! My owner knows you—so this one's special.",
-                "If my owner trusts you, I trust you too.",
-                "Thaaaaanks~!"
+                self.lstr('specialBoughtText1'),
+                self.lstr('specialBoughtText2'),
+                self.lstr('specialBoughtText3'),
+                self.lstr('specialBoughtText4'),
+                self.lstr('specialBoughtText5'),
             ]
             
 
@@ -2068,23 +2118,23 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
                 self.expression('hmm')
                 self.set_tail_mode('static')
                 messages = [
-                    "Oh… you're that person...",
-                    "My owner told me to keep an eye on you.",
-                    "Please… don\'t cause trouble.",
-                    "I'll sell to you… but I'm watching.",
-                    "Let's keep this peaceful, okay?"
+                    self.lstr('blacklistBoughtText1'),
+                    self.lstr('blacklistBoughtText2'),
+                    self.lstr('blacklistBoughtText3'),
+                    self.lstr('blacklistBoughtText4'),
+                    self.lstr('blacklistBoughtText5'),
                 ]
             if self.gummyboiyt:
                 self.expression('hmm')
                 self.set_tail_mode('lay')
                 messages = [
-                    "You can just take stuff yknow...",
-                    "*sniff*\nPlease just hurry up and do your testing.",
-                    "...Thanks. I guess.",
-                    "You can just spawn stuff in. I saw. why do you need this?",
-                    "...",
-                    "Yay... coins.",
-                    "The customers that come here say you're popular, Is that true\nDad?",
+                    self.lstr('gummyBoughtText1'),
+                    self.lstr('gummyBoughtText2'),
+                    self.lstr('gummyBoughtText3'),
+                    self.lstr('gummyBoughtText4'),
+                    self.lstr('gummyBoughtText5'),
+                    self.lstr('gummyBoughtText6'),
+                    self.lstr('gummyBoughtText7'),
                 ]
 
         else:
@@ -2102,24 +2152,24 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
 
     def short_on_cash(self):
         messages = [
-            'Huh? That\'s not enough…',
-            'Aww… really?',
-            'Oh… um… maybe next time.',
-            'Yikes, I can\'t do that!',
-            'Hmm… that won\'t work, sorry.',
-            'Come back  when you\'re a little... Mmmmm.. Richer!',
-            'My owner will be mad...'
+            self.lstr('shortCash1'),
+            self.lstr('shortCash2'),
+            self.lstr('shortCash3'),
+            self.lstr('shortCash4'),
+            self.lstr('shortCash5'),
+            self.lstr('shortCash6'),
+            self.lstr('shortCash7'),
         ]
 
         if self.special_username:
-            message = 'Hey.. my owner knows you!\nTake what you need.'
+            message = self.lstr('specialUsernameGreetingShort')
             self.expression('hmm')
             self.set_tail_mode('static')
             messages = [
-                "Silly, you dont have enough money!",
-                'Uh oh. You dont have enough for that. Next time eh?',
-                'Try that again yeah?',
-                'Nope... Go play some games!',
+                self.lstr('shortCashSpecial1'),
+                self.lstr('shortCashSpecial2'),
+                self.lstr('shortCashSpecial3'),
+                self.lstr('shortCashSpecial4'),
             ]
             
 
@@ -2127,17 +2177,17 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
                 self.expression('annoyed')
                 self.set_tail_mode('static')
                 messages = [
-                    'Can you not?',
-                    'Get out...'
+                    self.lstr('shortCashBlacklist1'),
+                    self.lstr('shortCashBlacklist2'),
                 ]
             if self.gummyboiyt:
                 self.expression('annoyed')
                 self.set_tail_mode('lay')
                 messages = [
-                    "Dad, you can just spawn in more coins.\nUnless you're grinding...",
-                    "How did you run short? You created this shop.",
-                    "Rules them rules Dad.",
-                    "...Boss are you serious?",
+                    self.lstr('shortCashGummy1'),
+                    self.lstr('shortCashGummy2'),
+                    self.lstr('shortCashGummy3'),
+                    self.lstr('shortCashGummy4'),
                 ]
                
             
@@ -2167,12 +2217,12 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
             self.bought_something()
         elif topic == 'BettyReminder':
             self.shopkeeper_speak(
-                "Hey, just a reminder.",
+                self.lstr('bettyReminder1'),
                 speed=0.02,
                 delay=0.6,
                 on_complete=lambda: (
                     self.shopkeeper_speak(
-                        "Go buy Betty with \"tokens\" in the latest version of the game or somethin\'\nOtherwise you cant use betty online!",
+                        self.lstr('bettyReminder2'),
                         speed=0.015,
                         delay=0.7
                     )
@@ -2185,7 +2235,7 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
             self.short_on_cash()
         elif topic == 'Cant':
             self.shopkeeper_speak(
-                "Cant seem to get ya on that deal...",
+                self.lstr('noDealText'),
                 speed=0.02,
                 delay=1.5,
                 on_complete=self.reset
@@ -2194,7 +2244,7 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
         elif topic == 'AlreadyOwn':
             if self.special_username:
                 self.shopkeeper_speak(
-                    "You already own that silly billy!",
+                    self.lstr('alreadyOwnedSpecialText'),
                     speed=0.02,
                     delay=1.5,
                     on_complete=self.reset
@@ -2202,21 +2252,21 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
             
                 if self.bad_username:
                     self.shopkeeper_speak(
-                        "Get out...",
+                        self.lstr('alreadyOwnedBlacklistText'),
                         speed=0.02,
                         delay=1.5,
                         on_complete=self.reset
                     )
                 if self.gummyboiyt:
                     self.shopkeeper_speak(
-                        "Dad. Dadddd!! My boss? You already own this...\nSilly.",
+                        self.lstr('alreadyOwnedGummyText'),
                         speed=0.023,
                         delay=1.8,
                         on_complete=self.reset
                     )
             else:
                 self.shopkeeper_speak(
-                    "You already own that! You cant buy it twice!",
+                    self.lstr('alreadyOwnedText'),
                     speed=0.02,
                     delay=1.5,
                     on_complete=self.reset
@@ -2224,7 +2274,7 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
         
         elif topic == 'BuyOriginal':
             self.shopkeeper_speak(
-                "Buy the original First!",
+                self.lstr('buyOriginalFirstText'),
                 speed=0.02,
                 delay=1.5,
                 on_complete=self.reset
@@ -2232,17 +2282,17 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
         
         elif topic == 'Who are you?':
             self.shopkeeper_speak(
-                "Who, me?",
+                self.lstr('whoAreYou1'),
                 speed=0.02,
                 delay=0.5,
                 on_complete=lambda: (
                     self.expression('happy', lock=True),
                     self.shopkeeper_speak(
-                        "I'm Faye!",
+                        self.lstr('whoAreYou2'),
                         speed=0.02,
                         delay=0.7,
                         on_complete=lambda: self.shopkeeper_speak(
-                            "I run this little shop, so feel free to look around!",
+                            self.lstr('whoAreYou3'),
                             speed=0.02,
                             delay=1.0,
                             on_complete=lambda: self.reset()
@@ -2253,17 +2303,17 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
 
         elif topic == 'Why a stool?':
             self.shopkeeper_speak(
-                "Ah, this old thing?",
+                self.lstr('whyStool1'),
                 speed=0.02,
                 delay=0.5,
                 on_complete=lambda: (
                     self.expression('hmm'),
                     self.shopkeeper_speak(
-                        "I like to be at eye-level with customers.",
+                        self.lstr('whyStool2'),
                         speed=0.02,
                         delay=0.7,
                         on_complete=lambda: self.shopkeeper_speak(
-                            "Plus, it’s comfy for long shifts!",
+                            self.lstr('whyStool1'),
                             speed=0.02,
                             delay=1.0,
                             on_complete=lambda: self.reset()
@@ -2274,17 +2324,17 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
         
         elif topic == 'What happened to the shop?':
             self.shopkeeper_speak(
-                "Oh why did it get moved?",
+                self.lstr('whatAboutShop1'),
                 speed=0.02,
                 delay=0.5,
                 on_complete=lambda: (
                     self.expression('hmm'),
                     self.shopkeeper_speak(
-                        "My owner told me that it cluttered up the vanilla shop.",
+                        self.lstr('whatAboutShop2'),
                         speed=0.02,
                         delay=0.7,
                         on_complete=lambda: self.shopkeeper_speak(
-                            "Whatever that means!",
+                            self.lstr('whatAboutShop3'),
                             speed=0.02,
                             delay=1.0,
                             on_complete=lambda: self.reset()
@@ -2295,17 +2345,17 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
 
         elif topic == 'What\'s with the bandana?':
             self.shopkeeper_speak(
-                "Oh this little thing?",
+                self.lstr('whatBandana1'),
                 speed=0.02,
                 delay=0.5,
                 on_complete=lambda: (
                     self.expression('happy'),
                     self.shopkeeper_speak(
-                        "It's a gift from my owner.",
+                        self.lstr('whatBandana2'),
                         speed=0.02,
                         delay=0.7,
                         on_complete=lambda: self.shopkeeper_speak(
-                            "I wear it for luck!",
+                            self.lstr('whatBandana3'),
                             speed=0.02,
                             delay=1.0,
                             on_complete=lambda: self.reset()
@@ -2316,17 +2366,17 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
 
         elif topic == 'Any advice for new customers?':
             self.shopkeeper_speak(
-                "Hmm, let's see...",
+                self.lstr('adviceNewCustomers1'),
                 speed=0.02,
                 delay=0.5,
                 on_complete=lambda: (
                     self.expression('hmm'),
                     self.shopkeeper_speak(
-                        "Take your time exploring!",
+                        self.lstr('adviceNewCustomers2'),
                         speed=0.02,
                         delay=0.7,
                         on_complete=lambda: self.shopkeeper_speak(
-                            "And don't hesitate to ask me anything.",
+                            self.lstr('adviceNewCustomers3'),
                             speed=0.02,
                             delay=1.0,
                             on_complete=lambda: self.reset()
@@ -2336,36 +2386,36 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
             )
         elif topic == "Who's your owner?":
             self.shopkeeper_speak(
-                "Owner? Huh..",
+                self.lstr('whoYourOwner1'),
                 speed=0.02,
                 delay=0.5,
                 on_complete=lambda: (
                     self.expression('hmm'),
                     self.shopkeeper_speak(
-                        "Oh! You mean GummyBoi… Why Tee?",
+                        self.lstr('whoYourOwner2'),
                         speed=0.02,
                         delay=0.7,
                         on_complete=lambda: 
                                
                                 self.shopkeeper_speak(
-                                    "He brought me here after I was adopted.",
+                                    self.lstr('whoYourOwner3'),
                                     speed=0.02,
                                     delay=0.8,
                                     on_complete=lambda: self.shopkeeper_speak(
-                                        "I… I think he's nice. I like living here!",
+                                        self.lstr('whoYourOwner4'),
                                         speed=0.02,
                                         delay=3.0,
                                         on_complete=lambda: ( 
                                             self.set_tail_mode('static'), 
                                             self.expression('annoyed', lock=True),
                                             self.shopkeeper_speak(
-                                                "It gets.. lonely around here.",
+                                                self.lstr('whoYourOwner5'),
                                                 speed=0.02,
                                                 delay=2.0,
                                                 on_complete=lambda: (
                                                         self.set_tail_mode('lay'), 
                                                         self.shopkeeper_speak(
-                                                        "...",
+                                                        self.lstr('whoYourOwner6'),
                                                         speed=1,
                                                         delay=5.0,  
                                             )
@@ -2380,7 +2430,7 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
         elif topic == "Do you like fish?":
             self.expression('happy', lock=True)
             self.shopkeeper_speak(
-                "I think so… maybe I like tuna? Or socks?", 
+                self.lstr('likeFish1'), 
                 speed=0.05, 
                 delay=1.0,
                 on_complete=self.reset
@@ -2389,7 +2439,7 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
         elif topic == "Can you do tricks?":
             self.expression('happy')
             self.shopkeeper_speak(
-                "I can… um… sit! And wiggle my tail!", 
+                self.lstr('whatTricks1'), 
                 speed=0.05, 
                 delay=1.0,
                 on_complete=self.reset
@@ -2400,11 +2450,11 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
         elif topic == "Do you have friends?":
             self.expression('annoyed')
             self.shopkeeper_speak(
-                "I… sometimes pretend the shadows are friends…", 
+                self.lstr('haveFriends1'), 
                 speed=0.05, 
                 delay=1.0,
                 on_complete=lambda: self.shopkeeper_speak(
-                    "They never talk back…", 
+                    self.lstr('haveFriends2'), 
                     speed=0.05, 
                     delay=1.0,
                     on_complete=self.reset
@@ -2414,11 +2464,11 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
         elif topic == "Do you remember before the shop?":
             self.expression('hmm')
             self.shopkeeper_speak(
-                "Before… um… I don't really remember…", 
+                self.lstr('beforeTheShop1'), 
                 speed=0.05, 
                 delay=1.2,
                 on_complete=lambda: self.shopkeeper_speak(
-                    "It's like a dream… or a nap?", 
+                    self.lstr('beforeTheShop2'), 
                     speed=0.05, 
                     delay=1.0,
                     on_complete=self.reset
@@ -2428,11 +2478,11 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
         elif topic == "Do you want a family?":
             self.expression('hmm')
             self.shopkeeper_speak(
-                "I… don't know… maybe?", 
+                self.lstr('wantFamily1'), 
                 speed=0.05, 
                 delay=1.2,
                 on_complete=lambda: self.shopkeeper_speak(
-                    "I just stay here… it's safer this way…", 
+                    self.lstr('wantFamily2'), 
                     speed=0.05, 
                     delay=1.0,
                     on_complete=self.reset
@@ -2444,11 +2494,11 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
         elif topic == "You get Visitors?":
             self.expression("happy")
             self.shopkeeper_speak(
-                "Not really.",
+                self.lstr('getVisitors1'),
                 speed=0.04,
                 delay=1,
                 on_complete=lambda: self.shopkeeper_speak(
-                    "You\'re the only person that stops by.",
+                    self.lstr('getVisitors2'),
                     speed=0.04,
                     delay=0.5,
                     on_complete=self.reset
@@ -2456,7 +2506,7 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
             )
         elif topic == "Got any hobbies?":
             self.shopkeeper_speak(
-                "I like napping on the counter... hehe!",
+                self.lstr('gotHobbies1'),
                 speed=0.04,
                 delay=0.89,
                 on_complete=self.reset
@@ -2464,11 +2514,11 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
         elif topic == "Do you miss someone?":
             self.expression("annoyed", lock=True)
             self.shopkeeper_speak(
-                "Well... I guess I do sometimes...",
+                self.lstr('missSomeone1'),
                 speed=0.04,
                 delay=0.6,
                 on_complete=lambda: self.shopkeeper_speak(
-                    "But I don't really remember who...",
+                    self.lstr('missSomeone2'),
                     speed=0.04,
                     delay=1.3,
                     on_complete=self.reset
@@ -2477,11 +2527,11 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
         elif topic == "Whats your living situation?":
             self.expression("hmm")
             self.shopkeeper_speak(
-                "I usually just hang around the shop...",
+                self.lstr('livingSituation1'),
                 speed=0.04,
                 delay=1.0,
                 on_complete=lambda: self.shopkeeper_speak(
-                    "I don't really go anywhere else...",
+                    self.lstr('livingSituation2'),
                     speed=0.04,
                     delay=0.9,
                     on_complete=self.reset
@@ -2494,7 +2544,7 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
             if cfg['asked_faye_boss']:
                 self.expression("annoyed")
                 self.shopkeeper_speak(
-                    "Its open...",
+                    self.lstr('secretBossOpenAlready'),
                     speed=0.04,
                     delay=2.5,
                     on_complete=self.reset
@@ -2504,19 +2554,19 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
 
                 self.expression("hmm")
                 self.shopkeeper_speak(
-                    "Who?",
+                    self.lstr('secretBoss1'),
                     speed=0.04,
                     delay=0.35,
                     on_complete=lambda: self.shopkeeper_speak(
-                        "Oh. That thing my owner asked me not to talk about? Uhm...",
+                        self.lstr('secretBoss2'),
                         speed=0.04,
                         delay=0.9,
                         on_complete=lambda: self.shopkeeper_speak(
-                            "Here. Dont tell anyone.",
+                            self.lstr('secretBoss3'),
                             speed=0.04,
                             delay=1.0,
                             on_complete=lambda: self.shopkeeper_speak(
-                                "*click*",
+                                self.lstr('secretBoss4'),
                                 speed=0.001,
                                 delay=1.5,
                                 on_complete=lambda: (
@@ -2542,19 +2592,19 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
         
        
         self.shopkeeper_speak(
-            "Huh...?",
+            self.lstr('areYouOkay1'),
             speed=0.05,
             delay=1.6,
             on_complete=lambda: (
                 self.expression('hmm', lock=True),
                 self.shopkeeper_speak(
-                    "Yeah.. I'm okay. My owner brought me here.",
+                    self.lstr('areYouOkay2'),
                     speed=0.05,
                     delay=1.5,
                     on_complete=lambda: (
                         self.expression('normal'),
                         self.shopkeeper_speak(
-                            "He said it's my shop… and my life now.",
+                            self.lstr('areYouOkay3'),
                             speed=0.05,
                             delay=2.0,
                             on_complete=self._secret_pause_before_sob
@@ -2581,7 +2631,7 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
 
         
         self.shopkeeper_speak(
-            "I wanna go home.",
+            self.lstr('areYouOkay4'),
             speed=0.07,
             delay=5.0,
             on_complete=lambda: (
@@ -2709,13 +2759,13 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
 
             bui.apptimer(0.1, _tick)
 
-            if full_text == "It's a gift from my owner.":
+            if full_text == self.lstr('whatBandana2'): # this my bandana
                 if not bui.app.config['asked_faye_bandana']:
                     bui.getsound('ding').play()
                 bui.app.config['asked_faye_bandana'] = True
                 bui.app.config.apply_and_commit()
 
-            if full_text == "It gets.. lonely around here.":
+            if full_text == self.lstr('whoYourOwner5'): # gets lonely around here
                 if not bui.app.config['asked_faye_owner']:
                     bui.getsound('ding').play()
                 bui.app.config['asked_faye_owner'] = True
@@ -2736,50 +2786,46 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
         
         if self.special_username:
             messages = [
-                'Byeeee!',
-                'Ta-ta!',
-                'Thanks for visiting! Please come again!',
-                'Cya Later.',
-                'Please.\nDont leave me here...',
-                'Later!',
-                'Wait- Dont go! My Dad! Hes gonna..'
-
+                self.lstr('specialGoodbyeText1'),
+                self.lstr('specialGoodbyeText2'),
+                self.lstr('specialGoodbyeText3'),
+                self.lstr('specialGoodbyeText4'),
+                self.lstr('specialGoodbyeText5'),
+                self.lstr('specialGoodbyeText6'),
+                self.lstr('specialGoodbyeText7'),
             ]
             self.expression('happy', lock=True)
             
 
             if self.bad_username:
                 messages = [
-                    'Just dont let me see you again.',
-                    'Good luck out there. Dont let...\nMy dad see you.',
-                    'Just get out.',
-                    'Bye....',
-                    'Bye, I guess.',
-
+                    self.lstr('blacklistGoodbyeText1'),
+                    self.lstr('blacklistGoodbyeText2'),
+                    self.lstr('blacklistGoodbyeText3'),
+                    self.lstr('blacklistGoodbyeText4'),
+                    self.lstr('blacklistGoodbyeText5'),
                 ]
                 self.expression('annoyed', lock=True)
             
             if self.gummyboiyt:
                 messages = [
-                    'Bye dad. See you later.',
-                    'Where are you going? I.. dont go please.',
-                    'Come back! Please!',
-                    'Boss...',
-                    'There he goes. Again.',
-                    'Why? Why are you leaving again?\nWhy Can\'t You just stay?',
-
+                    self.lstr('gummyGoodbyeText1'),
+                    self.lstr('gummyGoodbyeText2'),
+                    self.lstr('gummyGoodbyeText3'),
+                    self.lstr('gummyGoodbyeText4'),
+                    self.lstr('gummyGoodbyeText5'),
+                    self.lstr('gummyGoodbyeText6'),
                 ]
                 self.expression('hmm', lock=True)
 
         else:
             messages = [
-                'Ta-ta.',
-                'Thanks for visiting.',
-                'Cya Later.',
-                'Dont leave me...',
-                'Later.',
-                'Have fun with your new toys!'
-
+                self.lstr('goodbyeText1'),
+                self.lstr('goodbyeText2'),
+                self.lstr('goodbyeText3'),
+                self.lstr('goodbyeText4'),
+                self.lstr('goodbyeText5'),
+                self.lstr('goodbyeText6'),
             ]
         self.answer_other_questions = True
 
@@ -2942,9 +2988,7 @@ class ShopActivity(bs.Activity[bs.Player, bs.Team]):
     def show_description(self, name: str, description: str):
         self.expression('hmm', lock=False)
         self.shopkeeper_speak(
-            f'{random.choice([
-                'Uh,', 'Uhm okay...', 'Err...', 'Okay,', 'Mhm.'
-            ])} {name}?',
+            name + '?',
             delay=1.0,
             on_complete=lambda: (
                 self.shopkeeper_speak(
