@@ -12,6 +12,8 @@ from threading import Thread
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast, override
 from bauiv1lib.gather import GatherTab
+import babase
+
 
 import bauiv1 as bui
 import bascenev1 as bs
@@ -22,32 +24,19 @@ if TYPE_CHECKING:
     from bauiv1lib.gather import GatherWindow
 
 
-def _safe_set_text(
-    txt: bui.Widget | None, val: str | bui.Lstr, success: bool = True
-) -> None:
-    if txt:
-        bui.textwidget(
-            edit=txt, text=val, color=(0, 1, 0) if success else (1, 1, 0)
-        )
-
-
 def _encode_party_code(ip: str, port: int, name: str) -> str:
-    """Encrypts and packs the party data into a shareable alphanumeric code."""
-    XOR_KEY = 73  # Basic obfuscation key
+    XOR_KEY = 73 # el key
     raw_str = f"{ip}|{port}|{name}"
     
-    # Apply XOR and encode to Base32 for a clean, case-insensitive string without symbols
     xor_bytes = bytes([ord(c) ^ XOR_KEY for c in raw_str])
     encoded = base64.b32encode(xor_bytes).decode('utf-8').replace('=', '')
     return encoded
 
 
 def _decode_party_code(code: str) -> tuple[str, int, str] | None:
-    """Decrypts and unpacks a shareable code back into IP, Port, and Name."""
     XOR_KEY = 73
     try:
         code = code.upper().strip()
-        # Restore missing base32 padding if necessary
         missing_padding = len(code) % 8
         if missing_padding:
             code += '=' * (8 - missing_padding)
@@ -184,6 +173,10 @@ class CodeGatherTab(GatherTab):
         assert self._container
         if playsound:
             bui.getsound('click01').play()
+        
+        for widget in self._container.get_children():
+           
+            widget.delete()
 
         self._build_join_by_code_tab(region_width, region_height)
 
@@ -221,7 +214,7 @@ class CodeGatherTab(GatherTab):
             parent=self._container,
             editable=True,
             position=(c_width * 0.5 - 200, v - 35),
-            text="",
+            text=babase.app.config.get('GUMMY_last_code_used', ''),
             autoselect=True,
             v_align='center',
             h_align='center',
@@ -252,13 +245,26 @@ class CodeGatherTab(GatherTab):
                 self._on_show_my_address_button_press(v, self._container, c_width)
             self._check_button = bui.buttonwidget(
                 parent=self._container,
-                size=(320*scl, 48*scl),
-                label=f"Host code: {bs.app.host_code}\nClick for a new code",
+                size=(320*scl, (48*scl)+20),
+                label=f"Host code:\n{bs.app.host_code}\nClick for a new code",
                 color=(0.7, 0.2, 0.2),
                 position=(c_width * 0.5 - 160*scl, v),
                 autoselect=True,
                 on_activate_call=bui.Call(bruh),
             )
+            if babase.clipboard_is_supported():
+                def copy():
+                    babase.clipboard_set_text(bs.app.host_code)
+                    bui.screenmessage("Code copied to clipboard!", color=(0.2, 1.0, 0.5))
+                    bui.getsound('gunCocking').play()
+                self._copy_button = bui.buttonwidget(
+                    parent=self._container,
+                    size=(210*scl, 20*scl),
+                    label=f"Copy Code",
+                    position=(c_width * 0.5 - 100*scl, v-40),
+                    autoselect=True,
+                    on_activate_call=bui.Call(copy),
+                )
         else:
             self._check_button = bui.buttonwidget(
                 parent=self._container,
@@ -297,6 +303,7 @@ class CodeGatherTab(GatherTab):
         ip, port, party_name = decoded
         bui.screenmessage(f"Connecting to {party_name}...", color=(0, 1, 0))
         bs.connect_to_party(ip, port=port)
+        babase.app.config['GUMMY_last_code_used'] = code_str
 
     
     @override
@@ -342,6 +349,8 @@ class CodeGatherTab(GatherTab):
         self._access_check_update(self._checking_state_text, self._checking_state_text, self._checking_state_text)
         if self._check_button:
             self._check_button.delete()
+        if self._copy_button:
+            self._copy_button .delete()
 
     def _access_check_update(
         self,
@@ -383,7 +392,7 @@ class CodeGatherTab(GatherTab):
         
         if data['accessible']:
             self.ip_from_internet = data['address']
-            device_name = bui.app.env.device_name if hasattr(bui.app.env, 'device_name') else "Host"
+            device_name = babase.app.config.get( "Local Account Name", 'Host')
             
             party_code = _encode_party_code(
                 ip=self.ip_from_internet,
@@ -391,14 +400,11 @@ class CodeGatherTab(GatherTab):
                 name=device_name
             )
             
-            bui.textwidget(
-                edit=self._checking_state_text,
-                text=f"YOUR PARTY CODE:  {party_code}",
-                color=(0, 1, 0),
-                scale=1.1,
-            )
+            bui.screenmessage(f"Refresh the tab to get your code...", color=(0.2, 1.0, 0.5))
             bs.app.is_hosting_code = True
             bs.app.host_code = party_code
+            babase.app.config['GUMMY_last_code'] = party_code
+            
         else:
             self.ip_from_internet = None
             bs.app.is_hosting_code = False
@@ -493,7 +499,7 @@ class CodeGatherTab(GatherTab):
             bui.getsound('error').play()
             return
             
-        device_name = 'Host'
+        device_name = babase.app.config.get( "Local Account Name", 'Host')
         compiled_token = _encode_party_code(ip=ip_str, port=port_val, name=device_name)
         
         # Display built token on a structural overlay modal popup message
@@ -501,3 +507,7 @@ class CodeGatherTab(GatherTab):
         bui.screenmessage(f"Join code: {compiled_token}", color=(0.2, 1.0, 0.5))
         bs.app.is_hosting_code = True
         bs.app.host_code = compiled_token
+        babase.app.config['GUMMY_last_code'] = compiled_token
+        bui.screenmessage(f"Refresh the tab to get your code...", color=(0.2, 1.0, 0.5))
+      
+            
