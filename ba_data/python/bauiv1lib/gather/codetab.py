@@ -309,6 +309,8 @@ class CodeGatherTab(GatherTab):
         bui.screenmessage(f"Connecting to {party_name}...", color=(0, 1, 0))
         bs.connect_to_party(ip, port=port)
         babase.app.config['GUMMY_last_code_used'] = code_str
+        babase.app.config.apply_and_commit()
+
 
     
     @override
@@ -409,6 +411,7 @@ class CodeGatherTab(GatherTab):
             bs.app.is_hosting_code = True
             bs.app.host_code = party_code
             babase.app.config['GUMMY_last_code'] = party_code
+            babase.app.config.apply_and_commit()
             
         else:
             self.ip_from_internet = None
@@ -513,6 +516,7 @@ class CodeGatherTab(GatherTab):
         bs.app.is_hosting_code = True
         bs.app.host_code = compiled_token
         babase.app.config['GUMMY_last_code'] = compiled_token
+        babase.app.config.apply_and_commit()
         bui.screenmessage(f"Refresh the tab to get your code...", color=(0.2, 1.0, 0.5))
       
             
