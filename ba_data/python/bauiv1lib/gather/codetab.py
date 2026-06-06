@@ -24,9 +24,9 @@ if TYPE_CHECKING:
     from bauiv1lib.gather import GatherWindow
 
 
-def _encode_party_code(ip: str, port: int, name: str) -> str:
+def _encode_party_code(ip: str, port: int) -> str:
     XOR_KEY = 73 # el key
-    raw_str = f"{ip}|{port}|{name}"
+    raw_str = f"{ip}|{port}"
     
     xor_bytes = bytes([ord(c) ^ XOR_KEY for c in raw_str])
     encoded = base64.b32encode(xor_bytes).decode('utf-8').replace('=', '')
@@ -45,8 +45,8 @@ def _decode_party_code(code: str) -> tuple[str, int, str] | None:
         decoded_bytes = bytes([b ^ XOR_KEY for b in xor_bytes])
         decoded_str = decoded_bytes.decode('utf-8')
         
-        ip, port_str, name = decoded_str.split('|')
-        return ip, int(port_str), name
+        ip, port_str = decoded_str.split('|')
+        return ip, int(port_str)
     except Exception:
         return None
 
@@ -307,8 +307,7 @@ class CodeGatherTab(GatherTab):
             bui.getsound('error').play()
             return
             
-        ip, port, party_name = decoded
-        bui.screenmessage(f"Connecting to {party_name}...", color=(0, 1, 0))
+        ip, port = decoded
         
         def result(
         resolved_address: str | None, res_port: int
@@ -410,12 +409,11 @@ class CodeGatherTab(GatherTab):
         
         if data['accessible']:
             self.ip_from_internet = data['address']
-            device_name = babase.app.config.get( "Local Account Name", 'Host')
+           
             
             party_code = _encode_party_code(
                 ip=self.ip_from_internet,
                 port=bs.get_game_port(),
-                name=device_name
             )
             
             bui.screenmessage(f"Refresh the tab to get your code...", color=(0.2, 1.0, 0.5))
@@ -519,8 +517,8 @@ class CodeGatherTab(GatherTab):
             bui.getsound('error').play()
             return
             
-        device_name = babase.app.config.get( "Local Account Name", 'Host')
-        compiled_token = _encode_party_code(ip=ip_str, port=port_val, name=device_name)
+
+        compiled_token = _encode_party_code(ip=ip_str, port=port_val)
         
         # Display built token on a structural overlay modal popup message
         bui.getsound('gunCocking').play()
