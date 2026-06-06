@@ -309,7 +309,16 @@ class CodeGatherTab(GatherTab):
             
         ip, port, party_name = decoded
         bui.screenmessage(f"Connecting to {party_name}...", color=(0, 1, 0))
-        bs.connect_to_party(ip, port=port)
+        
+        def result(
+        resolved_address: str | None, res_port: int
+        ):
+            bs.connect_to_party(resolved_address, port=res_port)
+        _HostLookupThread(
+                name=ip,
+                port=port,
+                call=bui.WeakCall(result),
+            ).start()
         babase.app.config['GUMMY_last_code_used'] = code_str
         babase.app.config.apply_and_commit()
 
