@@ -120,6 +120,11 @@ class CodeGatherTab(GatherTab):
         self._party_edit_port_text: bui.Widget | None = None
         self._no_parties_added_text: bui.Widget | None = None
         self.ip_from_internet = None
+        #  check if we hosted before, likey we are on the same IP so just use the same code
+        if babase.app.config.get('GUMMY_last_code', ''):
+            self.host_code = babase.app.config['GUMMY_last_code']
+            self.is_hosting_code = True
+        
 
     @override
     def on_activate(
