@@ -8,9 +8,11 @@ from typing import override
 
 import bauiv1 as bui
 import babase
+import random
 from bauiv1lib.popup import PopupWindow
-
-
+from gummyoverhaul.ui.chest_open import ChestOpenPopup
+from gummyoverhaul.ui.stats import StatsWindow
+from gummyoverhaul.ui.leaderboard import LeaderBoardWindow
 
 class InventoryWindow(bui.MainWindow):
     """Shows what you got."""
@@ -124,7 +126,6 @@ class InventoryWindow(bui.MainWindow):
         self._container_default_height = self._subcontainerheight
 
         if not uiscale is bui.UIScale.SMALL:
-            
             self._scrollwidget = bui.scrollwidget(
                 parent=self._root_widget,
                 highlight=False,
@@ -148,7 +149,7 @@ class InventoryWindow(bui.MainWindow):
                 parent=self._root_widget,
                 position=(
                     self._width * 0.84,
-                    yoffs - (50 if uiscale is bui.UIScale.SMALL else 30) + (75 if uiscale is bui.UIScale.MEDIUM else 60),
+                    yoffs - 30 + (75 if uiscale is bui.UIScale.MEDIUM else 60),
                 ),
                 size=(0, 0),
                 text='Overhaul Chests',
@@ -308,12 +309,12 @@ class InventoryWindow(bui.MainWindow):
         if bui.app.plus:
             yoffs += 40
             self.leaderboard_button = bui.buttonwidget(
-                    parent=self._root_widget,
-                    position=(self._width * 0.5 - 280, yoffs),
-                    size=(120, 50),
-                    label="Leaderboard",
-                    button_type=None,
-                    on_activate_call=self._open_leaderboard,
+                parent=self._root_widget,
+                position=(self._width * 0.5 - 280, yoffs),
+                size=(120, 50),
+                label="Leaderboard",
+                button_type=None,
+                on_activate_call=self._open_leaderboard,
             )
         self.widget_items = []
         babase.apptimer(0.1, self._update)
@@ -361,12 +362,7 @@ class InventoryWindow(bui.MainWindow):
         )
     
     def _open_leaderboard(self):
-        #bui.screenmessage('leaderboards disabled until i can fix it :/')
-        #bui.getsound('error').play()
-        #return
-        LeaderBoardWindow(
-            
-        )
+        LeaderBoardWindow()
 
     def _update(self):
         # No-op if our ui is dead.
@@ -408,8 +404,6 @@ class InventoryWindow(bui.MainWindow):
             for widget in self.widget_items:
                 widget.delete()
 
-            
-
             all_chests = []
             if cfg["gummy_chestinslot"]:
                 all_chests.append(cfg["gummy_chestinslot"])
@@ -417,12 +411,10 @@ class InventoryWindow(bui.MainWindow):
 
             spacing = 10
             size = 120
-         
 
             # Calculate total height first
             total_height = (size + spacing + 2) * len(all_chests)
             self._subcontainerheight = total_height
-            
            
 
             # Start yoffset from the top of container
@@ -483,11 +475,13 @@ class InventoryWindow(bui.MainWindow):
                 )
                 self.widget_items.extend([txt])
 
-            bui.containerwidget(edit=self._subcontainer, size=(self._subcontainerwidth, self._subcontainerheight))
-            
-
-
-                
+            bui.containerwidget(
+                edit=self._subcontainer, 
+                size=(
+                    self._subcontainerwidth, 
+                    self._subcontainerheight
+                )
+            )
         babase.apptimer(1, self._update)
 
     def _open_chest(self):
@@ -500,22 +494,19 @@ class InventoryWindow(bui.MainWindow):
                 bui.getsound('error').play()
                 return
             import random
-            self.allow_exit = False
-            self.chest.delete()
-
             # Award rewards immediately and store for animation
             xp_reward = random.randint(1, 4)
             cfg = babase.app.config
+            # Maybe clean this up????
+            # Fuckin dumbass....
             if self.slot_data['type'] == 'coins':
                 reward = self.slot_data['rewards']
                 cfg["GUMMY_gumcoins"] += reward
-                bui.getsound('cashRegister').play()
                 coins_reward = reward
                 dollars_reward = 0
             elif self.slot_data['type'] == 'dollars':
                 reward = self.slot_data['rewards']
                 cfg["GUMMY_gumdollars"] += reward
-                bui.getsound('secretKey').play(1.3)
                 coins_reward = 0
                 dollars_reward = reward
             elif self.slot_data['type'] == 'both':
@@ -523,8 +514,6 @@ class InventoryWindow(bui.MainWindow):
                 dollars_reward = self.slot_data['dollars']
                 cfg["GUMMY_gumcoins"] += coins_reward
                 cfg["GUMMY_gumdollars"] += dollars_reward
-                bui.getsound('cashRegister').play()
-                bui.getsound('secretKey').play(1.3)
             else:
                 coins_reward = 0
                 dollars_reward = 0
@@ -538,42 +527,30 @@ class InventoryWindow(bui.MainWindow):
                 next_chest = cfg["gummy_chestqueue"].pop(0)
                 cfg["gummy_chestinslot"] = next_chest
             cfg.apply_and_commit()
+            coins_reward = 1
+            dollars_reward = 3
+            xp_reward = 2
             self.slot_data = cfg["gummy_chestinslot"]
-
-            # Popup animation for opening chest with shake then open
-
-            # this is so unoptimized but i NEED sleep bro 🥹
-            popup = ChestOpenPopup(old_data, self.slot_data)
-            def swing_and_open():
-             
-               
-
-                steps = 6
-                
-                
-                babase.apptimer((steps + 2) * 0.05, lambda: popup.show_chest_rewards(xp_reward, coins_reward, dollars_reward))
-
-            babase.apptimer(0, swing_and_open)
-            babase.apptimer(1.5, self.reset_)
+            rewards_data = {
+                'coins': coins_reward,
+                'dollars': dollars_reward,
+                'xp': xp_reward,
+            }
+            ChestOpenPopup(
+                chest_data=old_data, 
+                next_chest=self.slot_data,
+                rewards_data=rewards_data,
+            )
+            self._reset()
     
-    def reset_(self):
+    def _reset(self):
         # No-op if our ui is dead.
         if not self._root_widget:
             return
-        
-       
-
         cfg = babase.app.config
-        
-
-        
-
-      
-
         
         self.slot_data = cfg["gummy_chestinslot"] 
         imgsize = 100
-
 
         if self.slot_data:
             if self.chest:
@@ -623,22 +600,12 @@ class InventoryWindow(bui.MainWindow):
                 parent=self._root_widget,
                 position=(self._width * 0.5 - 60 + self.off_centr - self.back, self._yoffs+40),
                 size=(self._width, 25),
-                text=f'Open Me!',
+                text='Open Me!',
                 color=(1, 1, 1, 0.15),
                 h_align='left',
                 v_align='top',
                 maxwidth=200
             )
-       
-
-
-        self.allow_exit = True
-
-
-    
-
-  
-    
 
     def _player_profiles_press(self) -> None:
         # pylint: disable=cyclic-import
@@ -653,11 +620,8 @@ class InventoryWindow(bui.MainWindow):
         )
 
     def stats_open(self) -> None:
-
-      
         StatsWindow()
         
-
     @override
     def get_main_window_state(self) -> bui.MainWindowState:
         # Support recreating our window for back/refresh purposes.
@@ -667,386 +631,3 @@ class InventoryWindow(bui.MainWindow):
                 transition=transition, origin_widget=origin_widget
             )
         )
-
-class StatsWindow(PopupWindow):
-    """A popup window for showing stats in a vertical layout."""
-    def __init__(
-        self,
-    ):
-        self._width = 340
-        self._height = 390
-        super().__init__(
-            position=(0, 0),
-            size=(self._width, self._height),
-            scale=1.4,
-            bg_color=None,
-        )
-        self._transitioning_out = False
-        cfg = babase.app.config
-        stats = [
-            ('CRITICAL HITS:', 'GUMMY_statscrit', (0.2,1,0.2)),
-            ('MINI CRITS:', 'GUMMY_statsminicrit', (1,1,0.2)),
-            ('SHIELD BREAKS:', 'GUMMY_statsshieldbreaks', (0,1,1)),
-            ('BOLTEDs:', 'GUMMY_statsbolteds', (1,1,1)),
-            ('MINEXECUTIONs:', 'GUMMY_statsminexecutions', (1,0.5,0)),
-            ("IMPULS'Ds:", 'GUMMY_statsimpulsd', (0.5,0.25,1)),
-            ('GOLD STATUES:', 'GUMMY_statsgoldstatue', (1,1,0)),
-            ('ANKLES BROKEN:', "GUMMY_statsbrokenankles", (0.8, 0.8, 0.8))
-        ]
-        y = self._height - 68
-        bui.textwidget(
-            parent=self.root_widget,
-            position=(self._width * 0.5, self._height - 35),
-            size=(0, 0),
-            text='Stats',
-            color=(1, 1, 1),
-            scale=1.2,
-            maxwidth=self._width * 0.8,
-            h_align='center',
-            v_align='center',
-        )
-        for label, key, color in stats:
-            bui.textwidget(
-                parent=self.root_widget,
-                position=(40, y),
-                size=(0, 0),
-                text=label,
-                color=color,
-                h_align='left',
-                v_align='center',
-                maxwidth=180,
-                scale=0.95,
-            )
-            bui.textwidget(
-                parent=self.root_widget,
-                position=(self._width - 60, y),
-                size=(0, 0),
-                text=str(cfg.get(key, '0')),
-                color=(1, 1, 1),
-                h_align='right',
-                v_align='center',
-                maxwidth=70,
-                scale=0.95,
-            )
-            y -= 30
-        self._cancel_button = bui.buttonwidget(
-            parent=self.root_widget,
-            position=(self._width * 0.5 - 60, 22),
-            size=(120, 50),
-            label="Close",
-            color=(0.42, 0.73, 0.2),
-            on_activate_call=self._on_cancel_press,
-            autoselect=True,
-            icon=None,
-            iconscale=1.1,
-        )
-        bui.containerwidget(
-            edit=self.root_widget,
-            cancel_button=self._cancel_button,
-        )
-
-    def _on_cancel_press(self):
-        self._transition_out()
-       
-    def _transition_out(self, transition: str = 'out_scale') -> None:
-        bui.getsound('swish').play()
-        if not self._transitioning_out:
-            self._transitioning_out = True
-            bui.containerwidget(edit=self.root_widget, transition=transition)
-
-class ChestOpenPopup(PopupWindow):
-    """Popup animation shown when opening a chest."""
-
-    def __init__(self, chest_data, next_chest):
-        self._width = 420
-        self._height = 300
-        super().__init__(
-            position=(0, 0),
-            size=(self._width, self._height),
-            scale=1.6,
-            bg_color=None
-        )
-
-        self._transitioning_out = False
-        imgsize = 120
-
-        bui.getsound('hiss').play()
-        babase.apptimer(0.1, lambda: bui.getsound('chestOpen01').play(2.5))
-
-        # Chest image
-        self.chest = bui.imagewidget(
-            parent=self.root_widget,
-            position=(self._width * 0.5 - imgsize * 0.5, self._height * 0.55),
-            size=(imgsize, imgsize),
-            color=chest_data['color'],
-            texture=bui.gettexture("chestOpenIcon"),
-            tint_texture=bui.gettexture("chestOpenIconTint"),
-            tint_color=chest_data["tint"],
-            tint2_color=chest_data["tint2"],
-        ) 
-        import random
-        
-        self._cancel_button = bui.buttonwidget(
-            parent=self.root_widget,
-            position=(self._width * 0.5 - 60, 15),
-            size=(120, 40),
-            label=random.choice([
-                'Nice!','Rigged','scammed', 'Thanks i hate it', 'wow!',
-                'Yummy', 'yummres','Wow ill be\nsure to use this','kil it','Ok lol'
-            ]),
-            on_activate_call=self._on_cancel_press,
-            autoselect=True,
-        )
-
-        bui.containerwidget(
-            edit=self.root_widget,
-            cancel_button=self._cancel_button,
-        )
-    def show_chest_rewards(self, xp: int, coins: int, dollars: int):
-        x=160
-        y=125
-   
-        bui.textwidget(
-            parent=self.root_widget,
-            position=(x, y+40),
-            size=(0, 0),
-            text=f"+{xp} XP",
-            scale=1.0,
-            color=(1, 0.8, 0.7),
-            h_align='center'
-        )
-        bui.textwidget(
-            parent=self.root_widget,
-            position=(x+40, y),
-            size=(0, 0),
-            text=f"+{coins} Coins",
-            scale=1.0,
-            color=(0, 0.85, 1),
-            h_align='center'
-        )
-        bui.textwidget(
-            parent=self.root_widget,
-            position=(x+80, y-40),
-            size=(0, 0),
-            text=f"+{dollars} Dollars",
-            scale=1.0,
-            color=(0, .7, 1),
-            h_align='center'
-        )
-
-    def _on_cancel_press(self):
-        self._transition_out()
-
-    def _transition_out(self, transition: str = 'out_scale') -> None:
-        if not self._transitioning_out:
-            self._transitioning_out = True
-            bui.getsound('swish').play()
-            bui.containerwidget(edit=self.root_widget, transition=transition)
-
-class LeaderBoardWindow(PopupWindow):
-    """A popup window for showing overhaul's epic leaderboard"""
-
-    def __init__(
-        self,
-    ):
-        # FIXME: Tidy this up.
-        # pylint: disable=too-many-branches
-        # pylint: disable=too-many-statements
-        # pylint: disable=too-many-locals
-        
-
-        self._r = 'gameListWindow'
-        
-        self._transitioning_out = False
-        self._width = 500
-        self._height = 350
-
-        
-        # Creates our _root_widget.
-        super().__init__(
-            position=(0, 0), size=(self._width, self._height), scale=2, bg_color=None
-        )
-        self._subcontainerwidth = self._width
-        self._subcontainerheight = 0
-        self._scrollwidget = bui.scrollwidget(
-                parent=self.root_widget,
-                highlight=False,
-                size=(self._width * 0.9, (self._height * 0.7) - 30),
-                position=(
-                    self._width * 0.05,
-                    self._height * 0.1,
-                ),
-                simple_culling_v=10.0,
-                selection_loops_to_parent=True,
-                border_opacity=0.8,
-            )
-        self._subcontainer = bui.containerwidget(
-                parent=self._scrollwidget,
-                size=(self._subcontainerwidth, self._subcontainerheight),
-                background=False,
-                claims_left_right=True,
-                selection_loops_to_parent=True,
-            )
-
-        # Create a spinner widget, because we're loading from a server.
-        self._join_status_spinner = bui.spinnerwidget(
-            parent=self.root_widget,
-            position=(self._width * 0.5, self._height * 0.5),
-            style='bomb',
-            size=64,
-        )
-
-        
-        self._title_text = bui.textwidget(
-            parent=self.root_widget,
-            position=(self._width * 0.5, self._height - 89 + 51),
-            size=(0, 0),
-            text='Leaderboard',
-            scale=1.4,
-            color=(1, 1, 1),
-            maxwidth=self._width * 0.7,
-            h_align='center',
-            v_align='center',
-        )
-
-        self._cancel_button = bui.buttonwidget(
-            parent=self.root_widget,
-            position=(25, self._height - 53),
-            size=(50, 50),
-            scale=0.7,
-            label='',
-            color=(0.42, 0.73, 0.2),
-            on_activate_call=self._on_cancel_press,
-            autoselect=True,
-            icon=bui.gettexture('crossOut'),
-            iconscale=1.2,
-        )
-
-        bui.containerwidget(
-            edit=self.root_widget,
-            cancel_button=self._cancel_button,
-        )
-        self.failed = False
-
-        # Update now and once per second.
-        self._update_timer = bui.AppTimer(
-            4, bui.WeakCall(self._update), repeat=True
-        )
-        bui.apptimer(1, self._update)
-        bui.apptimer(0.2, self._start_async_update)
-        self.entries = []
-
-    def _start_async_update(self):
-        # Run the server fetch in a background thread.
-        import threading
-        threading.Thread(
-            target=self._fetch_data_threaded,
-            daemon=True
-        ).start()
-
-    def _fetch_data_threaded(self):
-        import urllib.request, json
-        try:
-            URL = bui.app.plus.get_gummysoverhaul_server_url()
-            with urllib.request.urlopen(f"{URL}/leaderboards.json") as f:
-                players_data = json.loads(f.read().decode()) or {}
-            with urllib.request.urlopen(f"{URL}/banned.json") as f:
-                banned_data = json.loads(f.read().decode()) or {}
-
-            # Store into instance variables
-            self._fetched_players = players_data
-            self._fetched_banned = banned_data
-            self.failed = False
-        except Exception:
-            self.failed = True
-
-        # Apply the data update on the UI thread
-        bui.pushcall(self._update, from_other_thread=True)
-
-    def _update(self) -> None:
-        # All we do here is make sure our targeted playlist still exists,
-        # and close ourself if not.
-
-        for widget in self.entries:
-            widget.delete()
-
-        # Do nothing if window is closing.
-        if self._transitioning_out:
-            self.failed = True
-            return
-
-        # If async failed, bail.
-        if self.failed:
-            return
-
-        players_data = getattr(self, '_fetched_players', {})
-        banned_data = getattr(self, '_fetched_banned', {})
-
-        # Filter banned players.
-        filtered_players = [p for pid, p in players_data.items() if pid not in banned_data]
-
-        # Sort players by coins then dollars.
-        sorted_players = sorted(
-            filtered_players,
-            key=lambda x: (x.get("coins", 0), x.get("dollars", 0)),
-            reverse=True
-        )
-
-        size = 30
-        spacing = 30
-        total_height = spacing * len(sorted_players)
-        self._subcontainerheight = total_height
-
-        y_pos = self._subcontainerheight - size
-
-        for i, entry in enumerate(sorted_players, start=1):
-            coins = entry.get("coins", 0)
-            dollars = entry.get("dollars", 0)
-            username = entry.get("username", "???")
-            color = (1, 1, 1) if bui.app.plus.get_v1_account_display_string(True, True) != username else (1, 1, 0)
-            us = bui.app.plus.get_v1_account_display_string(True, True) == username
-
-            trophy = babase.charstr(babase.SpecialChar(41)) if i == 1 else ""
-
-            text = bui.textwidget(
-                parent=self._subcontainer,
-                position=(10, y_pos),
-                size=(self._subcontainerwidth, 30),
-                text=f"{trophy}{i}. {username} - {coins}{babase.charstr(babase.SpecialChar.OUYA_BUTTON_U)} / {dollars}{babase.charstr(babase.SpecialChar.OUYA_BUTTON_O)}",
-                color=color,
-                h_align="left",
-                shadow=1.0,
-                maxwidth=380
-            )
-            self.entries.append(text)
-
-            if us:
-                text2 = bui.textwidget(
-                    parent=self.root_widget,
-                    position=(self._width * 0.1, 260),
-                    size=(self._width, 30),
-                    text=f"{trophy}{i}. {username} - {coins}{babase.charstr(babase.SpecialChar.OUYA_BUTTON_U)} / {dollars}{babase.charstr(babase.SpecialChar.OUYA_BUTTON_O)}",
-                    color=(1, 1, 1),
-                    h_align="left",
-                    shadow=1.0,
-                    maxwidth=380
-                )
-                self.entries.append(text2)
-
-            y_pos -= spacing
-
-        bui.containerwidget(
-            edit=self._subcontainer,
-            size=(self._subcontainerwidth, self._subcontainerheight)
-        )
-
-        bui.spinnerwidget(edit=self._join_status_spinner, visible=False)
-        
-    def _on_cancel_press(self):
-        self._transition_out()
-       
-    def _transition_out(self, transition: str = 'out_scale') -> None:
-        bui.getsound('swish').play()
-        if not self._transitioning_out:
-            self._transitioning_out = True
-            bui.containerwidget(edit=self.root_widget, transition=transition)

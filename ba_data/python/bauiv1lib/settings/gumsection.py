@@ -11,10 +11,6 @@ import logging
 import _bauiv1
 from bauiv1lib.popup import PopupWindow
 
-
-
-
-
 if TYPE_CHECKING:
     from typing import Any
 
@@ -89,6 +85,7 @@ class gumsectionSettingsWindow(bui.MainWindow):
             scale=0.8,
             text_scale=1.2,
             autoselect=True,
+            label=bui.charstr(bui.SpecialChar.BACK),
             button_type='backSmall',
             on_activate_call=self._back,
         )
